@@ -1,0 +1,20 @@
+export const orderStatuses = [
+  "DRAFT",
+  "SUBMITTED",
+  "PAYMENT_PENDING",
+  "PAID",
+  "UNDER_REVIEW",
+  "DOCUMENTS_REQUIRED",
+  "APPROVED",
+  "DEPOSIT_PENDING",
+  "READY_FOR_DELIVERY",
+  "OUT_FOR_DELIVERY",
+  "ACTIVE_RENTAL",
+  "RETURN_DUE",
+  "RETURNED_PENDING_INSPECTION",
+  "CLOSED",
+  "CANCELLED",
+  "REJECTED"
+] as const;
+
+export const paymentStatuses = ["PENDING", "PAID", "FAILED", "MANUAL_REVIEW", "REFUNDED"] as const;

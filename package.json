@@ -1,0 +1,50 @@
+{
+  "name": "rent-itshop-ng",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/s3-request-presigner": "^3.758.0",
+    "@prisma/client": "^6.4.1",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@react-email/components": "^1.0.8",
+    "@sanity/client": "^7.0.0",
+    "@tanstack/react-query": "^5.66.9",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jose": "^5.9.6",
+    "lucide-react": "^0.468.0",
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "resend": "^6.9.0",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.8",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "dotenv": "^16.6.1",
+    "eslint": "^9.20.1",
+    "eslint-config-next": "^16.1.6",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^4.0.8",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

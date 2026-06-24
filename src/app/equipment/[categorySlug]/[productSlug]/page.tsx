@@ -3,18 +3,25 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
-import { RentActions } from "@/components/rental/rent-actions";
-import { RentalCalculator } from "@/components/rental/rental-calculator";
+import { RentalFlowPanel } from "@/components/rental/rental-flow-panel";
 import { Badge } from "@/components/ui/badge";
-import { getProductBySlug, launchProducts } from "@/lib/catalog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 import { breadcrumbJsonLd, buildMetadata, productJsonLd } from "@/lib/seo";
+import {
+  getPublicProduct,
+  getPublicProductParams
+} from "@/lib/server/modules/products/product.service";
 import { formatNaira } from "@/lib/utils";
 
-export function generateStaticParams() {
-  return launchProducts.map((product) => ({
-    categorySlug: product.categorySlug,
-    productSlug: product.slug
-  }));
+export async function generateStaticParams() {
+  return getPublicProductParams();
 }
 
 export async function generateMetadata({
@@ -22,17 +29,21 @@ export async function generateMetadata({
 }: {
   params: Promise<{ categorySlug: string; productSlug: string }>;
 }) {
-  const { productSlug } = await params;
-  const product = getProductBySlug(productSlug);
-  if (!product) return {};
+  const { categorySlug, productSlug } = await params;
+  try {
+    const product = await getPublicProduct(productSlug);
+    if (product.categorySlug !== categorySlug) return {};
 
-  return buildMetadata({
-    title: product.seoTitle,
-    description: product.seoDescription,
-    path: `/equipment/${product.categorySlug}/${product.slug}`,
-    image: product.image,
-    noIndex: product.status !== "ACTIVE"
-  });
+    return buildMetadata({
+      title: product.seoTitle,
+      description: product.seoDescription,
+      path: `/equipment/${product.categorySlug}/${product.slug}`,
+      image: product.image,
+      noIndex: product.status !== "ACTIVE"
+    });
+  } catch {
+    return {};
+  }
 }
 
 export default async function ProductPage({
@@ -41,7 +52,7 @@ export default async function ProductPage({
   params: Promise<{ categorySlug: string; productSlug: string }>;
 }) {
   const { categorySlug, productSlug } = await params;
-  const product = getProductBySlug(productSlug);
+  const product = await getPublicProduct(productSlug).catch(() => null);
   if (!product || product.categorySlug !== categorySlug) notFound();
 
   return (
@@ -50,7 +61,7 @@ export default async function ProductPage({
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", href: "/" },
-          { name: "Laptops", href: "/equipment/laptops" },
+          { name: product.categorySlug === "laptops" ? "Laptops" : "Equipment", href: `/equipment/${product.categorySlug}` },
           { name: product.name, href: `/equipment/${product.categorySlug}/${product.slug}` }
         ])}
       />
@@ -79,6 +90,51 @@ export default async function ProductPage({
                 ))}
               </div>
             </section>
+
+            {product.variants.length > 0 ? (
+              <section className="mt-8">
+                <h2 className="text-2xl font-semibold">Rental variants</h2>
+                <p className="mt-3 leading-7 text-muted-foreground">
+                  Confirmed configurations and rates available for this product.
+                </p>
+                <div className="mt-5 rounded-lg border bg-card">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Variant</TableHead>
+                        <TableHead>Specs</TableHead>
+                        <TableHead>Daily</TableHead>
+                        <TableHead>Weekly</TableHead>
+                        <TableHead>Monthly</TableHead>
+                        <TableHead>Stock</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {product.variants.map((variant) => (
+                        <TableRow key={variant.id}>
+                          <TableCell className="min-w-56 font-medium">{variant.name}</TableCell>
+                          <TableCell className="min-w-52 text-muted-foreground">
+                            {[variant.processor, variant.ram, variant.storage].filter(Boolean).join(" / ")}
+                          </TableCell>
+                          <TableCell>
+                            {variant.dailyRate > 0 ? formatNaira(variant.dailyRate) : "Custom"}
+                          </TableCell>
+                          <TableCell>
+                            {variant.weeklyRate ? formatNaira(variant.weeklyRate) : "By request"}
+                          </TableCell>
+                          <TableCell>
+                            {variant.monthlyRate ? formatNaira(variant.monthlyRate) : "By request"}
+                          </TableCell>
+                          <TableCell>
+                            {product.status === "ACTIVE" ? `${variant.availableQty} units` : "Custom"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <aside className="grid h-fit gap-5">
@@ -106,11 +162,8 @@ export default async function ProductPage({
                   </div>
                 ))}
               </div>
-              <div className="mt-5">
-                <RentActions product={product} />
-              </div>
+              {product.dailyRate > 0 ? <RentalFlowPanel product={product} /> : null}
             </div>
-            {product.dailyRate > 0 ? <RentalCalculator product={product} /> : null}
           </aside>
         </div>
       </main>

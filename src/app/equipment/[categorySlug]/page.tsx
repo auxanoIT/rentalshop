@@ -2,16 +2,20 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { ProductCard } from "@/components/rental/product-card";
-import { getCategoryBySlug, getProductsByCategory, launchCategories } from "@/lib/catalog";
 import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
+import {
+  getPublicCategory,
+  getPublicCategoryParams
+} from "@/lib/server/modules/categories/category.service";
+import { getPublicProductsByCategory } from "@/lib/server/modules/products/product.service";
 
-export function generateStaticParams() {
-  return launchCategories.map((category) => ({ categorySlug: category.slug }));
+export async function generateStaticParams() {
+  return getPublicCategoryParams();
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ categorySlug: string }> }) {
   const { categorySlug } = await params;
-  const category = getCategoryBySlug(categorySlug);
+  const category = await getPublicCategory(categorySlug);
   if (!category) return {};
 
   return buildMetadata({
@@ -24,10 +28,10 @@ export async function generateMetadata({ params }: { params: Promise<{ categoryS
 
 export default async function CategoryPage({ params }: { params: Promise<{ categorySlug: string }> }) {
   const { categorySlug } = await params;
-  const category = getCategoryBySlug(categorySlug);
+  const category = await getPublicCategory(categorySlug);
   if (!category) notFound();
 
-  const products = getProductsByCategory(category.slug);
+  const products = await getPublicProductsByCategory(category.slug);
 
   return (
     <>
@@ -45,9 +49,15 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
           <p className="mt-4 text-muted-foreground">{category.description}</p>
         </div>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
-          {products.map((product, index) => (
-            <ProductCard key={product.id} product={product} priority={index === 0} />
-          ))}
+          {products.length ? (
+            products.map((product, index) => (
+              <ProductCard key={product.id} product={product} priority={index === 0} />
+            ))
+          ) : (
+            <div className="rounded-lg border bg-card p-5 text-sm text-muted-foreground md:col-span-3">
+              This category is available by request. Send the required specifications, quantity, and rental dates for admin review.
+            </div>
+          )}
         </div>
       </main>
     </>

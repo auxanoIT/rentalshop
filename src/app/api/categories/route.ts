@@ -2,11 +2,11 @@ import { NextRequest } from "next/server";
 
 import { requireAdminRequest } from "@/lib/server/auth/session";
 import { created, withApiError } from "@/lib/server/http";
-import { createAdminCategory, getCategories } from "@/lib/server/modules/categories/category.service";
+import { createAdminCategory, getPublicCategories } from "@/lib/server/modules/categories/category.service";
 
 export async function GET() {
   return withApiError(async () => ({
-    categories: await getCategories()
+    categories: await getPublicCategories()
   }));
 }
 

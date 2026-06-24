@@ -6,11 +6,13 @@ import { ProductCard } from "@/components/rental/product-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SeoLandingPage as SeoLandingPageType } from "@/lib/catalog";
-import { getActiveProducts } from "@/lib/catalog";
 import { faqJsonLd } from "@/lib/seo";
+import { getPublicProducts } from "@/lib/server/modules/products/product.service";
 
-export function SeoLandingPage({ page }: { page: SeoLandingPageType }) {
-  const products = getActiveProducts();
+export async function SeoLandingPage({ page }: { page: SeoLandingPageType }) {
+  const products = (await getPublicProducts()).filter(
+    (product) => product.categorySlug === "laptops" && product.status === "ACTIVE"
+  );
 
   return (
     <>

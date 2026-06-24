@@ -2,7 +2,10 @@ import { z } from "zod";
 
 import {
   createCategory,
+  findPublicCategoryBySlug,
   listCategories,
+  listPublicCategories,
+  listPublicCategoryParams,
   updateCategory
 } from "@/lib/server/modules/categories/category.repository";
 
@@ -17,6 +20,18 @@ const categoryUpdateSchema = categoryCreateSchema.partial();
 
 export async function getCategories() {
   return listCategories();
+}
+
+export async function getPublicCategories() {
+  return listPublicCategories();
+}
+
+export async function getPublicCategory(slug: string) {
+  return findPublicCategoryBySlug(slug);
+}
+
+export async function getPublicCategoryParams() {
+  return listPublicCategoryParams();
 }
 
 export async function createAdminCategory(payload: unknown) {

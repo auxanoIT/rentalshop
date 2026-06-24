@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 import { staticSeoRoutes } from "@/lib/catalog";
 import { getPublishedIndexableSanitySlugs } from "@/lib/sanity/queries";
-import { listActiveProductSlugs } from "@/lib/server/modules/products/product.repository";
+import { getActiveProductPaths } from "@/lib/server/modules/products/product.service";
 import { getSiteUrl } from "@/lib/utils";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
-  const [productSlugs, sanitySlugs] = await Promise.all([
-    listActiveProductSlugs(),
+  const [productPaths, sanitySlugs] = await Promise.all([
+    getActiveProductPaths(),
     getPublishedIndexableSanitySlugs()
   ]);
 
@@ -19,8 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: route === "/" ? 1 : 0.8
     })),
-    ...productSlugs.map((slug) => ({
-      url: `${baseUrl}/equipment/laptops/${slug}`,
+    ...productPaths.map(({ categorySlug, productSlug }) => ({
+      url: `${baseUrl}/equipment/${categorySlug}/${productSlug}`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.75

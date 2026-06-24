@@ -2,8 +2,8 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { launchCategories } from "@/lib/catalog";
 import { buildMetadata } from "@/lib/seo";
+import { getPublicCategories } from "@/lib/server/modules/categories/category.service";
 
 export const metadata = buildMetadata({
   title: "Equipment Rental Categories | ITShop Equipment Leasing",
@@ -11,7 +11,9 @@ export const metadata = buildMetadata({
   path: "/equipment"
 });
 
-export default function EquipmentPage() {
+export default async function EquipmentPage() {
+  const categories = await getPublicCategories();
+
   return (
     <main className="container-page py-12">
       <div className="max-w-3xl">
@@ -23,7 +25,7 @@ export default function EquipmentPage() {
         </p>
       </div>
       <div className="mt-8 grid gap-5 md:grid-cols-3">
-        {launchCategories.map((category) => (
+        {categories.map((category) => (
           <Link key={category.slug} href={`/equipment/${category.slug}`}>
             <Card className="h-full hover:border-primary">
               <CardContent className="p-5">

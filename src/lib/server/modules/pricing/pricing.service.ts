@@ -2,6 +2,7 @@ import { getProductBySlug } from "@/lib/catalog";
 import { getPrisma, hasDatabaseUrl } from "@/lib/server/db/prisma";
 import { badRequest, notFound } from "@/lib/server/errors";
 import {
+  pricingCartCalculateSchema,
   pricingCalculateSchema,
   pricingRuleUpdateSchema
 } from "@/lib/server/modules/pricing/pricing.validation";
@@ -19,22 +20,26 @@ const defaultRules = {
 async function getActiveRules() {
   if (!hasDatabaseUrl()) return defaultRules;
 
-  const rule = await getPrisma().pricingRule.findFirst({
-    where: { isActive: true },
-    orderBy: { updatedAt: "desc" }
-  });
+  try {
+    const rule = await getPrisma().pricingRule.findFirst({
+      where: { isActive: true },
+      orderBy: { updatedAt: "desc" }
+    });
 
-  return rule
-    ? {
-        name: rule.name,
-        minDaysSingleUnit: rule.minDaysSingleUnit,
-        bulkThreshold: rule.bulkThreshold,
-        minDaysBulk: rule.minDaysBulk,
-        maxStandardDays: rule.maxStandardDays,
-        bulkDiscountRate: Number(rule.bulkDiscountRate),
-        deliveryFeeDefault: Number(rule.deliveryFeeDefault)
-      }
-    : defaultRules;
+    return rule
+      ? {
+          name: rule.name,
+          minDaysSingleUnit: rule.minDaysSingleUnit,
+          bulkThreshold: rule.bulkThreshold,
+          minDaysBulk: rule.minDaysBulk,
+          maxStandardDays: rule.maxStandardDays,
+          bulkDiscountRate: Number(rule.bulkDiscountRate),
+          deliveryFeeDefault: Number(rule.deliveryFeeDefault)
+        }
+      : defaultRules;
+  } catch {
+    return defaultRules;
+  }
 }
 
 export async function getAdminPricingRules() {
@@ -78,17 +83,44 @@ async function getRate(productSlug: string) {
     return product.dailyRate;
   }
 
-  const variant = await getPrisma().productVariant.findUnique({
-    where: { slug: productSlug },
-    select: { dailyRate: true }
-  });
+  try {
+    const variant = await getPrisma().productVariant.findUnique({
+      where: { slug: productSlug },
+      select: { dailyRate: true }
+    });
 
-  if (!variant) throw notFound("Product variant not found");
-  return Number(variant.dailyRate);
+    if (!variant) throw notFound("Product variant not found");
+    return Number(variant.dailyRate);
+  } catch (error) {
+    if (error instanceof Error && error.name === "AppError") throw error;
+
+    const product = getProductBySlug(productSlug);
+    if (!product) throw notFound("Product variant not found");
+    return product.dailyRate;
+  }
 }
 
 export async function calculateRentalPrice(payload: unknown) {
   const input = pricingCalculateSchema.parse(payload);
+  const quote = await calculateRentalCartPrice({
+    items: [{ productSlug: input.productSlug, quantity: input.quantity }],
+    startDate: input.startDate,
+    returnDate: input.returnDate,
+    deliveryFeeEstimate: input.deliveryFeeEstimate
+  });
+  const line = quote.items[0];
+
+  return {
+    ...line,
+    minimumDays: quote.minimumDays,
+    deliveryFeeEstimate: quote.deliveryFeeEstimate,
+    total: quote.total,
+    securityDepositIncluded: false
+  };
+}
+
+export async function calculateRentalCartPrice(payload: unknown) {
+  const input = pricingCartCalculateSchema.parse(payload);
   const rentalDays = Math.ceil(
     (input.returnDate.getTime() - input.startDate.getTime()) / 86_400_000
   );
@@ -98,7 +130,9 @@ export async function calculateRentalPrice(payload: unknown) {
   }
 
   const rules = await getActiveRules();
-  const minimumDays = input.quantity >= rules.bulkThreshold ? rules.minDaysBulk : rules.minDaysSingleUnit;
+  const totalQuantity = input.items.reduce((sum, item) => sum + item.quantity, 0);
+  const isBulkOrder = totalQuantity >= rules.bulkThreshold;
+  const minimumDays = isBulkOrder ? rules.minDaysBulk : rules.minDaysSingleUnit;
 
   if (rentalDays < minimumDays) {
     throw badRequest(`Minimum rental period is ${minimumDays} days for this quantity`, {
@@ -113,20 +147,34 @@ export async function calculateRentalPrice(payload: unknown) {
     });
   }
 
-  const dailyRate = await getRate(input.productSlug);
-  const subtotal = dailyRate * input.quantity * rentalDays;
-  const discount =
-    input.quantity >= rules.bulkThreshold ? Math.round(subtotal * rules.bulkDiscountRate) : 0;
-  const deliveryFeeEstimate =
-    input.deliveryFeeEstimate > 0 ? input.deliveryFeeEstimate : rules.deliveryFeeDefault;
+  const items = await Promise.all(
+    input.items.map(async (item) => {
+      const dailyRate = await getRate(item.productSlug);
+      const subtotal = dailyRate * item.quantity * rentalDays;
+      const discount = isBulkOrder ? Math.round(subtotal * rules.bulkDiscountRate) : 0;
+
+      return {
+        productSlug: item.productSlug,
+        quantity: item.quantity,
+        rentalDays,
+        dailyRate,
+        subtotal,
+        discount,
+        total: subtotal - discount
+      };
+    })
+  );
+
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const discount = items.reduce((sum, item) => sum + item.discount, 0);
+  const deliveryFeeEstimate = input.deliveryFeeEstimate ?? rules.deliveryFeeDefault;
   const total = subtotal - discount + deliveryFeeEstimate;
 
   return {
-    productSlug: input.productSlug,
-    quantity: input.quantity,
+    items,
+    quantity: totalQuantity,
     rentalDays,
     minimumDays,
-    dailyRate,
     subtotal,
     discount,
     deliveryFeeEstimate,

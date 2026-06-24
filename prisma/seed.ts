@@ -98,6 +98,31 @@ async function main() {
       }
     });
 
+    const existingImage = await prisma.productImage.findFirst({
+      where: { productId: dbProduct.id },
+      orderBy: { sortOrder: "asc" }
+    });
+
+    if (existingImage) {
+      await prisma.productImage.update({
+        where: { id: existingImage.id },
+        data: {
+          url: product.image,
+          alt: product.imageAlt,
+          sortOrder: 0
+        }
+      });
+    } else {
+      await prisma.productImage.create({
+        data: {
+          productId: dbProduct.id,
+          url: product.image,
+          alt: product.imageAlt,
+          sortOrder: 0
+        }
+      });
+    }
+
     const variant = await prisma.productVariant.upsert({
       where: { slug: product.slug },
       update: {

@@ -17,7 +17,9 @@ export default async function AdminDashboardPage() {
           <StatCard label="Paid orders" value={summary.paidOrders} />
           <StatCard label="Active rentals" value={summary.activeRentals} />
           <StatCard label="Due returns" value={summary.dueReturns} />
+          <StatCard label="Overdue rentals" value={summary.overdueRentals} />
           <StatCard label="Available inventory" value={summary.availableInventory} />
+          <StatCard label="Rented inventory" value={summary.rentedInventory} />
           <StatCard label="Pending documents" value={summary.pendingDocuments} />
           <StatCard label="Revenue" value={summary.revenue} currency />
         </div>

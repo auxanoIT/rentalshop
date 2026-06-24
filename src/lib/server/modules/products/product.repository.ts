@@ -3,8 +3,10 @@ import type { Prisma } from "@prisma/client";
 import {
   getActiveProducts,
   getProductBySlug,
+  getProductsByCategory,
   launchProducts,
-  type LaunchProduct
+  type LaunchProduct,
+  type ProductStatus
 } from "@/lib/catalog";
 import { getPrisma, hasDatabaseUrl } from "@/lib/server/db/prisma";
 
@@ -34,8 +36,17 @@ type ProductMutationData = {
   specs?: Record<string, string | undefined>;
 };
 
+const publicProductStatuses: ProductStatus[] = ["ACTIVE", "REQUEST_ONLY"];
+
+function listFallbackPublicProducts() {
+  return launchProducts.filter((product) => publicProductStatuses.includes(product.status));
+}
+
 function mapDbProduct(product: ProductWithRelations, options: { publicView?: boolean } = {}): LaunchProduct {
-  const variant = product.variants[0];
+  const variants = [...product.variants].sort(
+    (a, b) => Number(a.dailyRate ?? 0) - Number(b.dailyRate ?? 0)
+  );
+  const variant = variants[0];
   const image = product.images[0];
   const status =
     options.publicView && product.status === "INACTIVE" ? "COMING_SOON" : product.status;
@@ -56,6 +67,23 @@ function mapDbProduct(product: ProductWithRelations, options: { publicView?: boo
     weeklyRate: variant?.weeklyRate ? Number(variant.weeklyRate) : undefined,
     monthlyRate: variant?.monthlyRate ? Number(variant.monthlyRate) : undefined,
     availableQty: variant?.availableQty ?? 0,
+    variants: variants.map((item) => ({
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      brand: item.brand ?? undefined,
+      model: item.model ?? undefined,
+      processor: item.processor ?? undefined,
+      ram: item.ram ?? undefined,
+      storage: item.storage ?? undefined,
+      operatingSystem: item.operatingSystem ?? undefined,
+      screenSize: item.screenSize ?? undefined,
+      condition: item.condition ?? undefined,
+      dailyRate: Number(item.dailyRate ?? 0),
+      weeklyRate: item.weeklyRate ? Number(item.weeklyRate) : undefined,
+      monthlyRate: item.monthlyRate ? Number(item.monthlyRate) : undefined,
+      availableQty: item.availableQty ?? 0
+    })),
     specs: {
       brand: variant?.brand ?? "",
       model: variant?.model ?? "",
@@ -73,17 +101,49 @@ function mapDbProduct(product: ProductWithRelations, options: { publicView?: boo
 
 export async function listPublicProducts() {
   if (!hasDatabaseUrl()) {
-    return launchProducts;
+    return listFallbackPublicProducts();
   }
 
-  const prisma = getPrisma();
-  const products = await prisma.product.findMany({
-    where: { status: { in: ["ACTIVE", "REQUEST_ONLY"] } },
-    include: { category: true, images: true, variants: true },
-    orderBy: { createdAt: "asc" }
-  });
+  try {
+    const prisma = getPrisma();
+    const products = await prisma.product.findMany({
+      where: {
+        status: { in: ["ACTIVE", "REQUEST_ONLY"] },
+        category: { status: { not: "HIDDEN" } }
+      },
+      include: { category: true, images: true, variants: true },
+      orderBy: { createdAt: "asc" }
+    });
 
-  return products.map((product) => mapDbProduct(product, { publicView: true }));
+    return products.map((product) => mapDbProduct(product, { publicView: true }));
+  } catch {
+    return listFallbackPublicProducts();
+  }
+}
+
+export async function listPublicProductsByCategorySlug(categorySlug: string) {
+  if (!hasDatabaseUrl()) {
+    return getProductsByCategory(categorySlug).filter((product) => publicProductStatuses.includes(product.status));
+  }
+
+  try {
+    const prisma = getPrisma();
+    const products = await prisma.product.findMany({
+      where: {
+        status: { in: ["ACTIVE", "REQUEST_ONLY"] },
+        category: {
+          slug: categorySlug,
+          status: { not: "HIDDEN" }
+        }
+      },
+      include: { category: true, images: true, variants: true },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return products.map((product) => mapDbProduct(product, { publicView: true }));
+  } catch {
+    return getProductsByCategory(categorySlug).filter((product) => publicProductStatuses.includes(product.status));
+  }
 }
 
 export async function listAdminProducts() {
@@ -105,27 +165,135 @@ export async function listActiveProductSlugs() {
     return getActiveProducts().map((product) => product.slug);
   }
 
-  const prisma = getPrisma();
-  const products = await prisma.product.findMany({
-    where: { status: "ACTIVE" },
-    select: { slug: true }
-  });
+  try {
+    const prisma = getPrisma();
+    const products = await prisma.product.findMany({
+      where: { status: "ACTIVE" },
+      select: { slug: true }
+    });
 
-  return products.map((product) => product.slug);
+    return products.map((product) => product.slug);
+  } catch {
+    return getActiveProducts().map((product) => product.slug);
+  }
+}
+
+export async function listPublicProductParams() {
+  if (!hasDatabaseUrl()) {
+    return launchProducts
+      .filter((product) => ["ACTIVE", "REQUEST_ONLY"].includes(product.status))
+      .map((product) => ({
+        categorySlug: product.categorySlug,
+        productSlug: product.slug
+      }));
+  }
+
+  try {
+    const prisma = getPrisma();
+    const products = await prisma.product.findMany({
+      where: {
+        status: { in: ["ACTIVE", "REQUEST_ONLY"] },
+        category: { status: { not: "HIDDEN" } }
+      },
+      select: {
+        slug: true,
+        category: { select: { slug: true } }
+      }
+    });
+
+    return products.map((product) => ({
+      categorySlug: product.category.slug,
+      productSlug: product.slug
+    }));
+  } catch {
+    return launchProducts
+      .filter((product) => publicProductStatuses.includes(product.status))
+      .map((product) => ({
+        categorySlug: product.categorySlug,
+        productSlug: product.slug
+      }));
+  }
+}
+
+export async function listActiveProductPaths() {
+  if (!hasDatabaseUrl()) {
+    return getActiveProducts().map((product) => ({
+      categorySlug: product.categorySlug,
+      productSlug: product.slug
+    }));
+  }
+
+  try {
+    const prisma = getPrisma();
+    const products = await prisma.product.findMany({
+      where: {
+        status: "ACTIVE",
+        category: { status: "ACTIVE" }
+      },
+      select: {
+        slug: true,
+        category: { select: { slug: true } }
+      }
+    });
+
+    return products.map((product) => ({
+      categorySlug: product.category.slug,
+      productSlug: product.slug
+    }));
+  } catch {
+    return getActiveProducts().map((product) => ({
+      categorySlug: product.categorySlug,
+      productSlug: product.slug
+    }));
+  }
 }
 
 export async function findPublicProductBySlug(slug: string) {
   if (!hasDatabaseUrl()) {
-    return getProductBySlug(slug) ?? null;
+    const product = getProductBySlug(slug);
+    return product && publicProductStatuses.includes(product.status) ? product : null;
   }
 
-  const prisma = getPrisma();
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: { category: true, images: true, variants: true }
-  });
+  try {
+    const prisma = getPrisma();
+    const product = await prisma.product.findFirst({
+      where: {
+        slug,
+        status: { in: ["ACTIVE", "REQUEST_ONLY"] },
+        category: { status: { not: "HIDDEN" } }
+      },
+      include: { category: true, images: true, variants: true }
+    });
 
-  return product ? mapDbProduct(product, { publicView: true }) : null;
+    return product ? mapDbProduct(product, { publicView: true }) : null;
+  } catch {
+    const product = getProductBySlug(slug);
+    return product && publicProductStatuses.includes(product.status) ? product : null;
+  }
+}
+
+export async function findPublicProductByIdentifier(identifier: string) {
+  if (!hasDatabaseUrl()) {
+    const product = launchProducts.find((item) => item.id === identifier || item.slug === identifier);
+    return product && publicProductStatuses.includes(product.status) ? product : null;
+  }
+
+  try {
+    const prisma = getPrisma();
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ id: identifier }, { slug: identifier }],
+        status: { in: ["ACTIVE", "REQUEST_ONLY"] },
+        category: { status: { not: "HIDDEN" } }
+      },
+      include: { category: true, images: true, variants: true }
+    });
+
+    return product ? mapDbProduct(product, { publicView: true }) : null;
+  } catch {
+    const product = launchProducts.find((item) => item.id === identifier || item.slug === identifier);
+    return product && publicProductStatuses.includes(product.status) ? product : null;
+  }
 }
 
 export async function findAdminProductById(id: string) {

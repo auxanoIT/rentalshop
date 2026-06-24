@@ -1,11 +1,23 @@
 import { z } from "zod";
 
+export const pricingLineItemSchema = z.object({
+  productSlug: z.string().min(1),
+  quantity: z.coerce.number().int().positive()
+});
+
 export const pricingCalculateSchema = z.object({
   productSlug: z.string().min(1),
   quantity: z.coerce.number().int().positive(),
   startDate: z.coerce.date(),
   returnDate: z.coerce.date(),
-  deliveryFeeEstimate: z.coerce.number().nonnegative().default(0)
+  deliveryFeeEstimate: z.coerce.number().nonnegative().optional()
+});
+
+export const pricingCartCalculateSchema = z.object({
+  items: z.array(pricingLineItemSchema).min(1),
+  startDate: z.coerce.date(),
+  returnDate: z.coerce.date(),
+  deliveryFeeEstimate: z.coerce.number().nonnegative().optional()
 });
 
 export const pricingRuleUpdateSchema = z.object({

@@ -6,8 +6,8 @@ import { JsonLd } from "@/components/json-ld";
 import { ProductCard } from "@/components/rental/product-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getActiveProducts } from "@/lib/catalog";
 import { organizationJsonLd } from "@/lib/seo";
+import { getPublicProducts } from "@/lib/server/modules/products/product.service";
 
 const trustItems = [
   { icon: Banknote, label: "Clear launch pricing" },
@@ -17,8 +17,10 @@ const trustItems = [
   { icon: ShieldCheck, label: "Document review" }
 ];
 
-export default function HomePage() {
-  const products = getActiveProducts();
+export default async function HomePage() {
+  const products = (await getPublicProducts()).filter(
+    (product) => product.categorySlug === "laptops" && product.status === "ACTIVE"
+  );
 
   return (
     <>

@@ -3,18 +3,41 @@
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getCartSubtotal, useCartStore } from "@/lib/client/stores/cart.store";
+import { getCartItemKey, useCartStore } from "@/lib/client/stores/cart.store";
 import { useCheckoutStore } from "@/lib/client/stores/checkout.store";
 import { daysBetween, formatNaira } from "@/lib/utils";
 
 type SubmissionState = "idle" | "submitting" | "success" | "error";
+type PricingState = "idle" | "loading" | "ready" | "error";
+
+type PricingLine = {
+  productSlug: string;
+  quantity: number;
+  rentalDays: number;
+  dailyRate: number;
+  subtotal: number;
+  discount: number;
+  total: number;
+};
+
+type PricingQuote = {
+  items: PricingLine[];
+  quantity: number;
+  rentalDays: number;
+  minimumDays: number;
+  subtotal: number;
+  discount: number;
+  deliveryFeeEstimate: number;
+  total: number;
+  securityDepositIncluded: false;
+};
 
 export function CheckoutForm() {
   const router = useRouter();
@@ -22,13 +45,90 @@ export function CheckoutForm() {
   const { startDate, returnDate, purpose, setDates, setPurpose } = useCheckoutStore();
   const [state, setState] = useState<SubmissionState>("idle");
   const [error, setError] = useState("");
+  const [pricingState, setPricingState] = useState<PricingState>("idle");
+  const [pricingError, setPricingError] = useState("");
+  const [priceQuote, setPriceQuote] = useState<PricingQuote | null>(null);
+  const [priceQuoteKey, setPriceQuoteKey] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const rentalDays = daysBetween(startDate, returnDate);
-  const subtotal = useMemo(() => getCartSubtotal(items, Math.max(1, rentalDays)), [items, rentalDays]);
+  const orderQuantity = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+  const quoteItems = useMemo(
+    () =>
+      items.map((item) => ({
+        productSlug: item.variantSlug ?? item.slug,
+        quantity: item.quantity
+      })),
+    [items]
+  );
+  const quoteRequestKey = useMemo(
+    () => JSON.stringify({ items: quoteItems, startDate, returnDate }),
+    [quoteItems, returnDate, startDate]
+  );
+  const activePriceQuote = priceQuoteKey === quoteRequestKey ? priceQuote : null;
+  const priceLinesBySlug = useMemo(
+    () => new Map(activePriceQuote?.items.map((line) => [line.productSlug, line]) ?? []),
+    [activePriceQuote]
+  );
+  const effectivePricingState: PricingState =
+    items.length === 0
+      ? "idle"
+      : rentalDays <= 0
+        ? "error"
+        : activePriceQuote
+          ? "ready"
+          : pricingState === "error"
+            ? "error"
+            : "loading";
+  const effectivePricingError = rentalDays <= 0 ? "Return date must be after start date" : pricingError;
+
+  useEffect(() => {
+    if (items.length === 0 || rentalDays <= 0) return;
+
+    const controller = new AbortController();
+
+    void Promise.resolve().then(async () => {
+      setPricingState("loading");
+      setPricingError("");
+
+      try {
+        const response = await fetch("/api/pricing/calculate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            items: quoteItems,
+            startDate,
+            returnDate
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.error?.message ?? "Unable to calculate checkout total");
+        }
+        setPriceQuote(data.price as PricingQuote);
+        setPriceQuoteKey(quoteRequestKey);
+        setPricingState("ready");
+      } catch (quoteError) {
+        if (quoteError instanceof DOMException && quoteError.name === "AbortError") return;
+        setPriceQuote(null);
+        setPriceQuoteKey("");
+        setPricingState("error");
+        setPricingError(quoteError instanceof Error ? quoteError.message : "Unable to calculate checkout total");
+      }
+    });
+
+    return () => controller.abort();
+  }, [items.length, quoteItems, quoteRequestKey, rentalDays, returnDate, startDate]);
 
   async function submitCheckout(formData: FormData) {
     setState("submitting");
     setError("");
+
+    if (effectivePricingState !== "ready" || !activePriceQuote) {
+      setState("error");
+      setError(effectivePricingError || "Checkout total is not ready yet.");
+      return;
+    }
 
     const payload = {
       customerType: formData.get("customerType"),
@@ -45,7 +145,7 @@ export function CheckoutForm() {
       rentalStartDate: startDate,
       returnDate,
       items: items.map((item) => ({
-        productSlug: item.slug,
+        productSlug: item.variantSlug ?? item.slug,
         quantity: item.quantity
       })),
       documentsMode: formData.get("documentsMode"),
@@ -248,26 +348,52 @@ export function CheckoutForm() {
         <aside className="h-fit rounded-lg border bg-card p-5">
           <h2 className="text-lg font-semibold">Order summary</h2>
           <div className="mt-4 grid gap-3 text-sm">
-            {items.map((item) => (
-              <div key={item.slug} className="flex justify-between gap-4">
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span className="font-medium">{formatNaira(item.dailyRate * item.quantity * Math.max(1, rentalDays))}</span>
-              </div>
-            ))}
+            {items.map((item) => {
+              const itemKey = getCartItemKey(item);
+              const priceLine = priceLinesBySlug.get(itemKey);
+              const lineTotal = priceLine?.total ?? item.dailyRate * item.quantity * Math.max(1, rentalDays);
+
+              return (
+                <div key={itemKey} className="flex justify-between gap-4">
+                  <span>
+                    {item.quantity} x {item.name}
+                  </span>
+                  <span className="font-medium">{formatNaira(lineTotal)}</span>
+                </div>
+              );
+            })}
           </div>
           <div className="mt-5 border-t pt-5">
             <div className="flex justify-between text-sm">
               <span>Rental days</span>
-              <span>{rentalDays}</span>
+              <span>{activePriceQuote?.rentalDays ?? rentalDays}</span>
             </div>
-            <div className="mt-3 flex justify-between text-xl font-semibold">
-              <span>Estimated total</span>
-              <span>{formatNaira(subtotal)}</span>
+            <div className="mt-2 flex justify-between text-sm">
+              <span>Total quantity</span>
+              <span>{activePriceQuote?.quantity ?? orderQuantity}</span>
             </div>
+            <div className="mt-2 flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span>{formatNaira(activePriceQuote?.subtotal ?? 0)}</span>
+            </div>
+            <div className="mt-2 flex justify-between text-sm">
+              <span>Discount</span>
+              <span>{formatNaira(activePriceQuote?.discount ?? 0)}</span>
+            </div>
+            <div className="mt-2 flex justify-between text-sm">
+              <span>Delivery estimate</span>
+              <span>{formatNaira(activePriceQuote?.deliveryFeeEstimate ?? 0)}</span>
+            </div>
+            <div className="mt-3 flex justify-between border-t pt-3 text-xl font-semibold">
+              <span>Validated total</span>
+              <span>{activePriceQuote ? formatNaira(activePriceQuote.total) : "Checking..."}</span>
+            </div>
+            {effectivePricingState === "loading" ? (
+              <p className="mt-3 text-xs text-muted-foreground">Checking pricing rules...</p>
+            ) : null}
+            {effectivePricingError ? <p className="mt-3 text-sm text-destructive">{effectivePricingError}</p> : null}
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Delivery fee, discounts, and security deposit are reviewed by admin. Deposit is not included by default.
+              Security deposit is reviewed by admin and is not included by default.
             </p>
           </div>
           <div className="mt-5 grid gap-3">
@@ -290,7 +416,7 @@ export function CheckoutForm() {
             <Button
               type="button"
               onClick={handleSubmitClick}
-              disabled={state === "submitting" || rentalDays <= 0}
+              disabled={state === "submitting" || effectivePricingState !== "ready" || rentalDays <= 0}
             >
               {state === "submitting" ? <Loader2 className="animate-spin" aria-hidden /> : null}
               Submit rental order

@@ -6,6 +6,8 @@ import { persist } from "zustand/middleware";
 export type CartItem = {
   productId: string;
   slug: string;
+  variantSlug?: string;
+  variantName?: string;
   name: string;
   dailyRate: number;
   image: string;
@@ -20,17 +22,22 @@ type CartStore = {
   clear: () => void;
 };
 
+export function getCartItemKey(item: CartItem) {
+  return item.variantSlug ?? item.slug;
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set) => ({
       items: [],
       addItem: (item) =>
         set((state) => {
-          const existing = state.items.find((cartItem) => cartItem.slug === item.slug);
+          const itemKey = getCartItemKey(item);
+          const existing = state.items.find((cartItem) => getCartItemKey(cartItem) === itemKey);
           if (existing) {
             return {
               items: state.items.map((cartItem) =>
-                cartItem.slug === item.slug
+                getCartItemKey(cartItem) === itemKey
                   ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
                   : cartItem
               )
@@ -41,12 +48,12 @@ export const useCartStore = create<CartStore>()(
       updateQuantity: (slug, quantity) =>
         set((state) => ({
           items: state.items.map((item) =>
-            item.slug === slug ? { ...item, quantity: Math.max(1, quantity) } : item
+            getCartItemKey(item) === slug ? { ...item, quantity: Math.max(1, quantity) } : item
           )
         })),
       removeItem: (slug) =>
         set((state) => ({
-          items: state.items.filter((item) => item.slug !== slug)
+          items: state.items.filter((item) => getCartItemKey(item) !== slug)
         })),
       clear: () => set({ items: [] })
     }),

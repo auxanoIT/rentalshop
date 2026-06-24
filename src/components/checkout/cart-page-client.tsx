@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCartStore } from "@/lib/client/stores/cart.store";
+import { getCartItemKey, useCartStore } from "@/lib/client/stores/cart.store";
 import { formatNaira } from "@/lib/utils";
 
 export function CartPageClient() {
@@ -42,46 +42,53 @@ export function CartPageClient() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="grid gap-4">
-          {items.map((item) => (
-            <Card key={item.slug}>
-              <CardContent className="grid gap-4 p-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-                <div className="relative aspect-[4/3] overflow-hidden rounded-md bg-muted">
-                  <Image src={item.image} alt={item.name} fill className="object-cover" sizes="120px" />
-                </div>
-                <div>
-                  <Link href={`/equipment/laptops/${item.slug}`} className="font-semibold hover:underline">
-                    {item.name}
-                  </Link>
-                  <p className="mt-1 text-sm text-muted-foreground">{formatNaira(item.dailyRate)} per day</p>
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => updateQuantity(item.slug, item.quantity - 1)}
-                    >
-                      <Minus aria-hidden />
-                      <span className="sr-only">Decrease quantity</span>
-                    </Button>
-                    <span className="w-10 text-center text-sm font-semibold">{item.quantity}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => updateQuantity(item.slug, item.quantity + 1)}
-                    >
-                      <Plus aria-hidden />
-                      <span className="sr-only">Increase quantity</span>
-                    </Button>
+          {items.map((item) => {
+            const itemKey = getCartItemKey(item);
+
+            return (
+              <Card key={itemKey}>
+                <CardContent className="grid gap-4 p-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="120px" />
                   </div>
-                </div>
-                <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(item.slug)}>
-                  <Trash2 aria-hidden />
-                  <span className="sr-only">Remove item</span>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <div>
+                    <Link href={`/equipment/laptops/${item.slug}`} className="font-semibold hover:underline">
+                      {item.name}
+                    </Link>
+                    {item.variantName && item.variantName !== item.name ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{item.variantName}</p>
+                    ) : null}
+                    <p className="mt-1 text-sm text-muted-foreground">{formatNaira(item.dailyRate)} per day</p>
+                    <div className="mt-4 flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => updateQuantity(itemKey, item.quantity - 1)}
+                      >
+                        <Minus aria-hidden />
+                        <span className="sr-only">Decrease quantity</span>
+                      </Button>
+                      <span className="w-10 text-center text-sm font-semibold">{item.quantity}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => updateQuantity(itemKey, item.quantity + 1)}
+                      >
+                        <Plus aria-hidden />
+                        <span className="sr-only">Increase quantity</span>
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(itemKey)}>
+                    <Trash2 aria-hidden />
+                    <span className="sr-only">Remove item</span>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <aside className="rounded-lg border bg-card p-5">

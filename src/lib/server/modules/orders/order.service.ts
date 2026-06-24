@@ -1,9 +1,9 @@
 import { getProductBySlug } from "@/lib/catalog";
 import { getPrisma, hasDatabaseUrl } from "@/lib/server/db/prisma";
-import { badRequest, notFound } from "@/lib/server/errors";
+import { notFound } from "@/lib/server/errors";
 import { sendAdminOrderAlert, sendOrderConfirmation } from "@/lib/server/modules/notifications/resend.service";
 import { createOrderSchema, updateOrderSchema } from "@/lib/server/modules/orders/order.validation";
-import { calculateRentalPrice } from "@/lib/server/modules/pricing/pricing.service";
+import { calculateRentalCartPrice } from "@/lib/server/modules/pricing/pricing.service";
 
 function makeReference() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -13,30 +13,13 @@ function makeReference() {
 
 export async function createGuestOrder(payload: unknown) {
   const input = createOrderSchema.parse(payload);
-  const rentalDays = Math.ceil(
-    (input.returnDate.getTime() - input.rentalStartDate.getTime()) / 86_400_000
-  );
-
-  if (rentalDays <= 0) {
-    throw badRequest("Return date must be after start date");
-  }
-
-  const pricedItems = await Promise.all(
-    input.items.map(async (item) => {
-      const price = await calculateRentalPrice({
-        productSlug: item.productSlug,
-        quantity: item.quantity,
-        startDate: input.rentalStartDate,
-        returnDate: input.returnDate
-      });
-      return { ...item, price };
-    })
-  );
-
-  const subtotal = pricedItems.reduce((sum, item) => sum + item.price.subtotal, 0);
-  const discount = pricedItems.reduce((sum, item) => sum + item.price.discount, 0);
-  const deliveryFeeEstimate = pricedItems.reduce((sum, item) => sum + item.price.deliveryFeeEstimate, 0);
-  const total = subtotal - discount + deliveryFeeEstimate;
+  const quote = await calculateRentalCartPrice({
+    items: input.items,
+    startDate: input.rentalStartDate,
+    returnDate: input.returnDate
+  });
+  const pricedItems = quote.items.map((price) => ({ ...price, price }));
+  const { rentalDays, subtotal, discount, deliveryFeeEstimate, total } = quote;
   const reference = makeReference();
 
   if (!hasDatabaseUrl()) {

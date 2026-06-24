@@ -18,12 +18,14 @@ export async function getDashboardSummary() {
   }
 
   const prisma = getPrisma();
+  const now = new Date();
   const [
     totalOrders,
     pendingOrders,
     paidOrders,
     activeRentals,
     dueReturns,
+    overdueRentals,
     availableInventory,
     rentedInventory,
     pendingDocuments,
@@ -34,6 +36,16 @@ export async function getDashboardSummary() {
     prisma.rentalOrder.count({ where: { paymentStatus: "PAID" } }),
     prisma.rentalOrder.count({ where: { status: "ACTIVE_RENTAL" } }),
     prisma.rentalOrder.count({ where: { status: "RETURN_DUE" } }),
+    prisma.returnRecord.count({
+      where: {
+        dueDate: { lt: now },
+        order: {
+          status: {
+            notIn: ["CLOSED", "CANCELLED", "REJECTED"]
+          }
+        }
+      }
+    }),
     prisma.inventoryUnit.count({ where: { status: "AVAILABLE" } }),
     prisma.inventoryUnit.count({ where: { status: "RENTED" } }),
     prisma.customerDocument.count({ where: { reviewStatus: "PENDING" } }),
@@ -46,7 +58,7 @@ export async function getDashboardSummary() {
     paidOrders,
     activeRentals,
     dueReturns,
-    overdueRentals: 0,
+    overdueRentals,
     availableInventory,
     rentedInventory,
     pendingDocuments,

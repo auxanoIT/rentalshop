@@ -6,6 +6,7 @@ import { badRequest, unauthorized } from "@/lib/server/errors";
 import { withApiError } from "@/lib/server/http";
 import { createAdminSessionToken, setAdminSessionCookie } from "@/lib/server/auth/session";
 import { verifyPassword } from "@/lib/server/auth/password";
+import { assertRateLimit } from "@/lib/server/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -14,6 +15,7 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   return withApiError(async () => {
+    assertRateLimit(request, "admin-login", { limit: 5, windowMs: 60_000 });
     const input = loginSchema.parse(await request.json());
 
     let admin: {

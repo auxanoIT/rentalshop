@@ -1,4 +1,23 @@
 export type ProductStatus = "ACTIVE" | "INACTIVE" | "REQUEST_ONLY" | "COMING_SOON";
+export type CategoryStatus = "ACTIVE" | "REQUEST_ONLY" | "COMING_SOON" | "HIDDEN";
+
+export type LaunchProductVariant = {
+  id: string;
+  name: string;
+  slug: string;
+  brand?: string;
+  model?: string;
+  processor?: string;
+  ram?: string;
+  storage?: string;
+  operatingSystem?: string;
+  screenSize?: string;
+  condition?: string;
+  dailyRate: number;
+  weeklyRate?: number;
+  monthlyRate?: number;
+  availableQty: number;
+};
 
 export type LaunchProduct = {
   id: string;
@@ -16,6 +35,7 @@ export type LaunchProduct = {
   weeklyRate?: number;
   monthlyRate?: number;
   availableQty: number;
+  variants: LaunchProductVariant[];
   specs: {
     brand: string;
     model: string;
@@ -35,7 +55,7 @@ export type LaunchCategory = {
   name: string;
   slug: string;
   description: string;
-  status: ProductStatus;
+  status: CategoryStatus;
   seoTitle: string;
   seoDescription: string;
 };
@@ -115,6 +135,25 @@ export const launchProducts: LaunchProduct[] = [
     weeklyRate: 31500,
     monthlyRate: 120000,
     availableQty: 24,
+    variants: [
+      {
+        id: "var_dell_i5_8gb",
+        name: "Dell Latitude Core i5, 8GB RAM, 256GB SSD",
+        slug: "dell-latitude-core-i5-8gb-256gb",
+        brand: "Dell",
+        model: "Latitude",
+        processor: "Intel Core i5",
+        ram: "8GB",
+        storage: "256GB SSD",
+        operatingSystem: "Windows 10/11 Pro",
+        screenSize: "14 inches",
+        condition: "Verified business-grade",
+        dailyRate: 5000,
+        weeklyRate: 31500,
+        monthlyRate: 120000,
+        availableQty: 24
+      }
+    ],
     specs: {
       brand: "Dell",
       model: "Latitude",
@@ -147,6 +186,25 @@ export const launchProducts: LaunchProduct[] = [
     weeklyRate: 47250,
     monthlyRate: 180000,
     availableQty: 18,
+    variants: [
+      {
+        id: "var_dell_i5_16gb",
+        name: "Dell Latitude Core i5, 16GB RAM, 256GB SSD",
+        slug: "dell-latitude-core-i5-16gb-256gb",
+        brand: "Dell",
+        model: "Latitude",
+        processor: "Intel Core i5",
+        ram: "16GB",
+        storage: "256GB SSD",
+        operatingSystem: "Windows 11 Pro",
+        screenSize: "14 inches",
+        condition: "Verified business-grade",
+        dailyRate: 7500,
+        weeklyRate: 47250,
+        monthlyRate: 180000,
+        availableQty: 18
+      }
+    ],
     specs: {
       brand: "Dell",
       model: "Latitude",
@@ -179,6 +237,25 @@ export const launchProducts: LaunchProduct[] = [
     weeklyRate: 63000,
     monthlyRate: 240000,
     availableQty: 12,
+    variants: [
+      {
+        id: "var_dell_i7_16gb",
+        name: "Dell Latitude Core i7, 16GB RAM, 512GB SSD",
+        slug: "dell-latitude-core-i7-16gb-512gb",
+        brand: "Dell",
+        model: "Latitude",
+        processor: "Intel Core i7",
+        ram: "16GB",
+        storage: "512GB SSD",
+        operatingSystem: "Windows 11 Pro",
+        screenSize: "14/15 inches",
+        condition: "Verified business-grade",
+        dailyRate: 10000,
+        weeklyRate: 63000,
+        monthlyRate: 240000,
+        availableQty: 12
+      }
+    ],
     specs: {
       brand: "Dell",
       model: "Latitude",
@@ -205,10 +282,27 @@ export const launchProducts: LaunchProduct[] = [
     rentable: true,
     sellable: false,
     image:
-      "https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Multiple laptops arranged for a custom equipment rental request",
     dailyRate: 0,
     availableQty: 0,
+    variants: [
+      {
+        id: "var_special_spec",
+        name: "Special Laptop Specification Request",
+        slug: "special-laptop-specification-request",
+        brand: "Custom",
+        model: "By request",
+        processor: "Custom",
+        ram: "Custom",
+        storage: "Custom",
+        operatingSystem: "Windows, macOS, or Linux by request",
+        screenSize: "Custom",
+        condition: "Subject to availability",
+        dailyRate: 0,
+        availableQty: 0
+      }
+    ],
     specs: {
       brand: "Custom",
       model: "By request",

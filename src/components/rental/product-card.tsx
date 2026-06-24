@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { LaunchProduct } from "@/lib/catalog";
 import { formatNaira } from "@/lib/utils";
 
-export function ProductCard({ product }: { product: LaunchProduct }) {
+export function ProductCard({ product, priority = false }: { product: LaunchProduct; priority?: boolean }) {
   return (
     <Card className="overflow-hidden">
       <Link href={`/equipment/${product.categorySlug}/${product.slug}`} className="block">
@@ -16,6 +16,7 @@ export function ProductCard({ product }: { product: LaunchProduct }) {
             src={product.image}
             alt={product.imageAlt}
             fill
+            priority={priority}
             sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover"
           />

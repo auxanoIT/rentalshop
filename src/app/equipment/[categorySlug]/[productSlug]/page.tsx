@@ -30,7 +30,8 @@ export async function generateMetadata({
     title: product.seoTitle,
     description: product.seoDescription,
     path: `/equipment/${product.categorySlug}/${product.slug}`,
-    image: product.image
+    image: product.image,
+    noIndex: product.status !== "ACTIVE"
   });
 }
 
@@ -45,7 +46,7 @@ export default async function ProductPage({
 
   return (
     <>
-      <JsonLd data={productJsonLd(product)} />
+      {product.status === "ACTIVE" && product.dailyRate > 0 ? <JsonLd data={productJsonLd(product)} /> : null}
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", href: "/" },

@@ -17,7 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ categoryS
   return buildMetadata({
     title: category.seoTitle,
     description: category.seoDescription,
-    path: `/equipment/${category.slug}`
+    path: `/equipment/${category.slug}`,
+    noIndex: category.status !== "ACTIVE"
   });
 }
 
@@ -44,8 +45,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
           <p className="mt-4 text-muted-foreground">{category.description}</p>
         </div>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {products.map((product, index) => (
+            <ProductCard key={product.id} product={product} priority={index === 0} />
           ))}
         </div>
       </main>

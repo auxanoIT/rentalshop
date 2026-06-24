@@ -53,7 +53,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t py-4">
         <div className="container-page flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} ITShop.ng. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} ITShop.ng. All rights reserved.</span>
           <span>rent.itshop.ng</span>
         </div>
       </div>

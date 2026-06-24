@@ -67,10 +67,12 @@ export function productJsonLd(product: {
   name: string;
   description: string;
   image: string;
+  categorySlug: string;
   slug: string;
   dailyRate: number;
+  status?: string;
 }) {
-  const url = `${getSiteUrl()}/equipment/laptops/${product.slug}`;
+  const url = `${getSiteUrl()}/equipment/${product.categorySlug}/${product.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -86,7 +88,8 @@ export function productJsonLd(product: {
       "@type": "Offer",
       priceCurrency: "NGN",
       price: product.dailyRate,
-      availability: "https://schema.org/InStock",
+      availability:
+        product.status === "ACTIVE" ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
       url
     }
   };

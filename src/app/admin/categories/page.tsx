@@ -1,4 +1,4 @@
-import { createCategoryAction } from "@/app/admin/actions";
+import { createCategoryAction, updateCategoryAction } from "@/app/admin/actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,17 +38,60 @@ export default async function AdminCategoriesPage({
       ) : null}
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
         <div className="grid gap-3">
-          {categories.map((category) => (
-            <Card key={category.id}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
-                <div>
-                  <h3 className="font-semibold">{category.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
-                </div>
-                <Badge variant={category.status === "ACTIVE" ? "success" : "warning"}>{category.status}</Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {categories.map((category) => {
+            const updateAction = updateCategoryAction.bind(null, category.id);
+            return (
+              <Card key={category.id}>
+                <CardContent className="grid gap-4 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold">{category.name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
+                    </div>
+                    <Badge variant={category.status === "ACTIVE" ? "success" : "warning"}>{category.status}</Badge>
+                  </div>
+                  <form action={updateAction} className="grid gap-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-2">
+                        <Label htmlFor={`category-name-${category.id}`}>Name</Label>
+                        <Input id={`category-name-${category.id}`} name="name" defaultValue={category.name} disabled={!databaseReady} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`category-slug-${category.id}`}>Slug</Label>
+                        <Input id={`category-slug-${category.id}`} name="slug" defaultValue={category.slug} disabled={!databaseReady} required />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor={`category-description-${category.id}`}>Description</Label>
+                      <Textarea id={`category-description-${category.id}`} name="description" defaultValue={category.description ?? ""} disabled={!databaseReady} />
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="grid gap-2">
+                        <Label htmlFor={`category-status-${category.id}`}>Status</Label>
+                        <Select id={`category-status-${category.id}`} name="status" defaultValue={category.status} disabled={!databaseReady}>
+                          <option value="ACTIVE">ACTIVE</option>
+                          <option value="REQUEST_ONLY">REQUEST_ONLY</option>
+                          <option value="COMING_SOON">COMING_SOON</option>
+                          <option value="HIDDEN">HIDDEN</option>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor={`category-seo-title-${category.id}`}>SEO title</Label>
+                        <Input id={`category-seo-title-${category.id}`} name="seoTitle" defaultValue={category.seoTitle ?? ""} disabled={!databaseReady} />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor={`category-seo-description-${category.id}`}>SEO description</Label>
+                      <Textarea id={`category-seo-description-${category.id}`} name="seoDescription" defaultValue={category.seoDescription ?? ""} disabled={!databaseReady} />
+                    </div>
+                    <Button type="submit" size="sm" disabled={!databaseReady}>
+                      Update category
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
         <form action={createCategoryAction} className="grid h-fit gap-4 rounded-lg border bg-card p-5">
           <h3 className="font-semibold">Create category</h3>
@@ -72,6 +115,14 @@ export default async function AdminCategoriesPage({
               <option value="COMING_SOON">COMING_SOON</option>
               <option value="HIDDEN">HIDDEN</option>
             </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="seoTitle">SEO title</Label>
+            <Input id="seoTitle" name="seoTitle" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="seoDescription">SEO description</Label>
+            <Textarea id="seoDescription" name="seoDescription" />
           </div>
           <Button type="submit" disabled={!databaseReady}>
             Save category

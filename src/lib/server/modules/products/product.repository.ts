@@ -27,8 +27,12 @@ type ProductMutationData = {
   status?: "ACTIVE" | "INACTIVE" | "REQUEST_ONLY" | "COMING_SOON";
   rentable?: boolean;
   sellable?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
   imageUrl?: string;
   imageAlt?: string;
+  variantName?: string;
+  variantSlug?: string;
   dailyRate?: number;
   weeklyRate?: number;
   monthlyRate?: number;
@@ -328,6 +332,8 @@ export async function createProduct(data: ProductMutationData & {
       status: data.status ?? "ACTIVE",
       rentable: data.rentable ?? true,
       sellable: data.sellable ?? false,
+      seoTitle: data.seoTitle,
+      seoDescription: data.seoDescription,
       images: data.imageUrl
         ? {
             create: {
@@ -339,8 +345,8 @@ export async function createProduct(data: ProductMutationData & {
         : undefined,
       variants: {
         create: {
-          name: data.name,
-          slug: data.slug,
+          name: data.variantName || data.name,
+          slug: data.variantSlug || data.slug,
           dailyRate: data.dailyRate,
           weeklyRate: data.weeklyRate,
           monthlyRate: data.monthlyRate,
@@ -371,6 +377,8 @@ export async function updateProduct(id: string, data: ProductMutationData) {
   if (data.status !== undefined) productData.status = data.status;
   if (data.rentable !== undefined) productData.rentable = data.rentable;
   if (data.sellable !== undefined) productData.sellable = data.sellable;
+  if (data.seoTitle !== undefined) productData.seoTitle = data.seoTitle;
+  if (data.seoDescription !== undefined) productData.seoDescription = data.seoDescription;
 
   const product = await prisma.product.update({
     where: { id },
@@ -381,6 +389,8 @@ export async function updateProduct(id: string, data: ProductMutationData) {
   const hasVariantPatch =
     data.name !== undefined ||
     data.slug !== undefined ||
+    data.variantName !== undefined ||
+    data.variantSlug !== undefined ||
     data.dailyRate !== undefined ||
     data.weeklyRate !== undefined ||
     data.monthlyRate !== undefined ||
@@ -392,6 +402,8 @@ export async function updateProduct(id: string, data: ProductMutationData) {
 
     if (data.name !== undefined) variantData.name = data.name;
     if (data.slug !== undefined) variantData.slug = data.slug;
+    if (data.variantName !== undefined) variantData.name = data.variantName;
+    if (data.variantSlug !== undefined) variantData.slug = data.variantSlug;
     if (data.dailyRate !== undefined) variantData.dailyRate = data.dailyRate;
     if (data.weeklyRate !== undefined) variantData.weeklyRate = data.weeklyRate;
     if (data.monthlyRate !== undefined) variantData.monthlyRate = data.monthlyRate;
@@ -417,8 +429,8 @@ export async function updateProduct(id: string, data: ProductMutationData) {
       await prisma.productVariant.create({
         data: {
           productId: product.id,
-          name: data.name ?? product.name,
-          slug: data.slug ?? product.slug,
+          name: data.variantName ?? data.name ?? product.name,
+          slug: data.variantSlug ?? data.slug ?? product.slug,
           dailyRate: data.dailyRate ?? 0,
           weeklyRate: data.weeklyRate,
           monthlyRate: data.monthlyRate,

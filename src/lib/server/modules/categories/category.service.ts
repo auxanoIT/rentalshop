@@ -13,7 +13,9 @@ const categoryCreateSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
   description: z.string().optional(),
-  status: z.enum(["ACTIVE", "REQUEST_ONLY", "COMING_SOON", "HIDDEN"]).default("ACTIVE")
+  status: z.enum(["ACTIVE", "REQUEST_ONLY", "COMING_SOON", "HIDDEN"]).default("ACTIVE"),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional()
 });
 
 const categoryUpdateSchema = categoryCreateSchema.partial();

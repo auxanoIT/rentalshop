@@ -87,12 +87,32 @@ export default async function NewProductPage({
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           <div className="grid gap-2">
+            <Label htmlFor="seoTitle">SEO title</Label>
+            <Input id="seoTitle" name="seoTitle" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="seoDescription">SEO description</Label>
+            <Input id="seoDescription" name="seoDescription" />
+          </div>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2">
             <Label htmlFor="imageUrl">Primary image URL</Label>
             <Input id="imageUrl" name="imageUrl" type="url" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="imageAlt">Image alt text</Label>
             <Input id="imageAlt" name="imageAlt" />
+          </div>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="variantName">Primary variant name</Label>
+            <Input id="variantName" name="variantName" placeholder="Defaults to product name" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="variantSlug">Primary variant slug</Label>
+            <Input id="variantSlug" name="variantSlug" placeholder="Defaults to product slug" />
           </div>
         </div>
         <div className="grid gap-2 md:grid-cols-4">

@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 import { requireAdminPage } from "@/lib/server/auth/page";
 import { hasDatabaseUrl } from "@/lib/server/db/prisma";
 import { recordAuditLog } from "@/lib/server/modules/audit/audit.service";
-import { createAdminCategory } from "@/lib/server/modules/categories/category.service";
+import {
+  createAdminCategory,
+  updateAdminCategory
+} from "@/lib/server/modules/categories/category.service";
 import { updateDelivery } from "@/lib/server/modules/deliveries/delivery.service";
 import { updateAdminDocumentReview } from "@/lib/server/modules/documents/document.service";
 import { updateInventoryUnit } from "@/lib/server/modules/inventory/inventory.service";
@@ -52,8 +55,12 @@ function productPayloadFromForm(formData: FormData) {
     status: text(formData, "status"),
     rentable: formData.has("rentable"),
     sellable: formData.has("sellable"),
+    seoTitle: optionalText(formData, "seoTitle"),
+    seoDescription: optionalText(formData, "seoDescription"),
     imageUrl: optionalText(formData, "imageUrl"),
     imageAlt: optionalText(formData, "imageAlt"),
+    variantName: optionalText(formData, "variantName"),
+    variantSlug: optionalText(formData, "variantSlug"),
     dailyRate: Number(text(formData, "dailyRate")),
     weeklyRate: optionalNumber(formData, "weeklyRate"),
     monthlyRate: optionalNumber(formData, "monthlyRate"),
@@ -114,13 +121,40 @@ export async function createCategoryAction(formData: FormData) {
     name: text(formData, "name"),
     slug: text(formData, "slug"),
     description: optionalText(formData, "description"),
-    status: text(formData, "status")
+    status: text(formData, "status"),
+    seoTitle: optionalText(formData, "seoTitle"),
+    seoDescription: optionalText(formData, "seoDescription")
   });
 
   await recordAuditLog(session, {
     action: "category.create",
     entityType: "Category",
     entityId: category.id,
+    metadata: { name: category.name, slug: category.slug }
+  });
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/equipment");
+  redirect("/admin/categories?saved=1");
+}
+
+export async function updateCategoryAction(id: string, formData: FormData) {
+  const session = await requireAdminPage();
+  redirectIfNoDatabase("/admin/categories");
+
+  const category = await updateAdminCategory(id, {
+    name: text(formData, "name"),
+    slug: text(formData, "slug"),
+    description: optionalText(formData, "description"),
+    status: text(formData, "status"),
+    seoTitle: optionalText(formData, "seoTitle"),
+    seoDescription: optionalText(formData, "seoDescription")
+  });
+
+  await recordAuditLog(session, {
+    action: "category.update",
+    entityType: "Category",
+    entityId: id,
     metadata: { name: category.name, slug: category.slug }
   });
 

@@ -3,9 +3,11 @@ import { z } from "zod";
 import { badRequest } from "@/lib/server/errors";
 import {
   createDocumentRecord,
+  findDocumentById,
+  listDocuments,
   updateDocumentReview
 } from "@/lib/server/modules/documents/document.repository";
-import { uploadPrivateObject } from "@/lib/server/modules/storage/r2.service";
+import { getPrivateSignedUrl, uploadPrivateObject } from "@/lib/server/modules/storage/r2.service";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -64,4 +66,21 @@ const documentReviewSchema = z.object({
 
 export async function updateAdminDocumentReview(id: string, payload: unknown) {
   return updateDocumentReview(id, documentReviewSchema.parse(payload));
+}
+
+export async function listAdminDocuments() {
+  const documents = await listDocuments();
+  return Promise.all(
+    documents.map(async (document) => ({
+      ...document,
+      signedUrl: await getPrivateSignedUrl(document.fileKey)
+    }))
+  );
+}
+
+export async function getAdminDocumentFileUrl(id: string) {
+  const document = await findDocumentById(id);
+  if (!document) return null;
+
+  return getPrivateSignedUrl(document.fileKey);
 }

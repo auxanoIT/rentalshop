@@ -7,8 +7,10 @@ import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireAdminPage } from "@/lib/server/auth/page";
 import { hasDatabaseUrl } from "@/lib/server/db/prisma";
-import { listDocuments } from "@/lib/server/modules/documents/document.repository";
-import { documentReviewStatuses } from "@/lib/server/modules/documents/document.service";
+import {
+  documentReviewStatuses,
+  listAdminDocuments
+} from "@/lib/server/modules/documents/document.service";
 
 type AdminDocumentRow = {
   id: string;
@@ -16,6 +18,8 @@ type AdminDocumentRow = {
   documentType: string;
   reviewStatus: string;
   adminNote?: string | null;
+  signedUrl?: string;
+  sizeBytes?: number;
   customer?: { name?: string | null } | null;
 };
 
@@ -26,7 +30,7 @@ export default async function AdminDocumentsPage({
 }) {
   const session = await requireAdminPage();
   const [documents, query] = await Promise.all([
-    listDocuments() as Promise<AdminDocumentRow[]>,
+    listAdminDocuments() as Promise<AdminDocumentRow[]>,
     searchParams ? searchParams : Promise.resolve({} as { error?: string; saved?: string })
   ]);
   const databaseReady = hasDatabaseUrl();
@@ -47,13 +51,14 @@ export default async function AdminDocumentsPage({
               <TableHead>Customer</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>File access</TableHead>
               <TableHead>Review</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {documents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground">
                   No uploaded documents yet.
                 </TableCell>
               </TableRow>
@@ -68,6 +73,17 @@ export default async function AdminDocumentsPage({
                       <Badge variant={document.reviewStatus === "VALID" ? "success" : "warning"}>{document.reviewStatus}</Badge>
                     </TableCell>
                     <TableCell>{document.documentType}</TableCell>
+                    <TableCell>
+                      {document.signedUrl ? (
+                        <Button asChild variant="outline" size="sm">
+                          <a href={document.signedUrl} target="_blank" rel="noreferrer">
+                            View file
+                          </a>
+                        </Button>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <form action={updateAction} className="grid min-w-96 gap-2 md:grid-cols-[170px_1fr_auto]">
                         <Select name="reviewStatus" defaultValue={document.reviewStatus} disabled={!databaseReady}>

@@ -87,7 +87,7 @@ export default async function AdminDeliveriesPage({
                     </TableCell>
                     <TableCell>{delivery.scheduledAt ? new Date(delivery.scheduledAt).toLocaleString("en-NG") : "-"}</TableCell>
                     <TableCell>
-                      <form action={updateAction} className="grid min-w-[520px] gap-2 md:grid-cols-[150px_1fr_1fr_auto]">
+                      <form action={updateAction} className="grid min-w-[680px] gap-2 md:grid-cols-[150px_1fr_1fr_1fr_auto]">
                         <Select name="status" defaultValue={delivery.status} disabled={!databaseReady}>
                           {deliveryStatuses.map((status) => (
                             <option key={status} value={status}>
@@ -97,7 +97,7 @@ export default async function AdminDeliveriesPage({
                         </Select>
                         <Input name="scheduledAt" type="datetime-local" defaultValue={dateInputValue(delivery.scheduledAt)} disabled={!databaseReady} />
                         <Input name="deliveredAt" type="datetime-local" defaultValue={dateInputValue(delivery.deliveredAt)} disabled={!databaseReady} />
-                        <input type="hidden" name="notes" value={delivery.notes ?? ""} />
+                        <Input name="notes" defaultValue={delivery.notes ?? ""} placeholder="Delivery notes" disabled={!databaseReady} />
                         <Button type="submit" size="sm" disabled={!databaseReady}>
                           Save
                         </Button>

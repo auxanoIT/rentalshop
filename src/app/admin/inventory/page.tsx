@@ -72,7 +72,7 @@ export default async function AdminInventoryPage({
                   </TableCell>
                   <TableCell>{row.condition ?? "-"}</TableCell>
                   <TableCell>
-                    <form action={updateAction} className="grid min-w-96 gap-2 md:grid-cols-[150px_1fr_auto]">
+                    <form action={updateAction} className="grid min-w-[560px] gap-2 md:grid-cols-[150px_1fr_1fr_auto]">
                       <Select name="status" defaultValue={row.status} disabled={!databaseReady}>
                         {inventoryStatuses.map((status) => (
                           <option key={status} value={status}>
@@ -81,7 +81,7 @@ export default async function AdminInventoryPage({
                         ))}
                       </Select>
                       <Input name="condition" defaultValue={row.condition ?? ""} placeholder="Condition" disabled={!databaseReady} />
-                      <input type="hidden" name="notes" value={row.notes ?? ""} />
+                      <Input name="notes" defaultValue={row.notes ?? ""} placeholder="Inventory notes" disabled={!databaseReady} />
                       <Button type="submit" size="sm" disabled={!databaseReady}>
                         Save
                       </Button>

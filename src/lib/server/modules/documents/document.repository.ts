@@ -32,6 +32,15 @@ export async function listDocuments() {
   });
 }
 
+export async function findDocumentById(id: string) {
+  if (!hasDatabaseUrl()) return null;
+
+  return getPrisma().customerDocument.findUnique({
+    where: { id },
+    include: { customer: true, order: true }
+  });
+}
+
 export async function updateDocumentReview(
   id: string,
   data: {

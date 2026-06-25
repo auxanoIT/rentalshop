@@ -34,6 +34,7 @@ export default async function AdminProductDetailPage({
   const selectedCategory = categories.find((category) => category.slug === product.categorySlug);
   const databaseReady = hasDatabaseUrl();
   const updateAction = updateProductAction.bind(null, product.id);
+  const primaryVariant = product.variants[0];
 
   return (
     <AdminShell session={session}>
@@ -131,12 +132,32 @@ export default async function AdminProductDetailPage({
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           <div className="grid gap-2">
+            <Label htmlFor="seoTitle">SEO title</Label>
+            <Input id="seoTitle" name="seoTitle" defaultValue={product.seoTitle} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="seoDescription">SEO description</Label>
+            <Input id="seoDescription" name="seoDescription" defaultValue={product.seoDescription} />
+          </div>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2">
             <Label htmlFor="imageUrl">Primary image URL</Label>
             <Input id="imageUrl" name="imageUrl" type="url" defaultValue={product.image} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="imageAlt">Image alt text</Label>
             <Input id="imageAlt" name="imageAlt" defaultValue={product.imageAlt} />
+          </div>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="variantName">Primary variant name</Label>
+            <Input id="variantName" name="variantName" defaultValue={primaryVariant?.name ?? product.name} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="variantSlug">Primary variant slug</Label>
+            <Input id="variantSlug" name="variantSlug" defaultValue={primaryVariant?.slug ?? product.slug} />
           </div>
         </div>
         <div className="grid gap-2 md:grid-cols-4">

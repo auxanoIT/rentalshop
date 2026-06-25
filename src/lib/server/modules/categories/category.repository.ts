@@ -80,6 +80,8 @@ export async function createCategory(data: {
   slug: string;
   description?: string;
   status?: "ACTIVE" | "REQUEST_ONLY" | "COMING_SOON" | "HIDDEN";
+  seoTitle?: string;
+  seoDescription?: string;
 }) {
   const prisma = getPrisma();
   return prisma.category.create({ data });
@@ -92,6 +94,8 @@ export async function updateCategory(
     slug?: string;
     description?: string;
     status?: "ACTIVE" | "REQUEST_ONLY" | "COMING_SOON" | "HIDDEN";
+    seoTitle?: string;
+    seoDescription?: string;
   }
 ) {
   const prisma = getPrisma();

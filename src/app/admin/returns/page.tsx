@@ -86,7 +86,7 @@ export default async function AdminReturnsPage({
                     </TableCell>
                     <TableCell>{formatNaira(Number(returnRecord.damageFee ?? 0))}</TableCell>
                     <TableCell>
-                      <form action={updateAction} className="grid min-w-[560px] gap-2 md:grid-cols-[170px_1fr_1fr_auto]">
+                      <form action={updateAction} className="grid min-w-[720px] gap-2 md:grid-cols-[170px_1fr_1fr_1fr_auto]">
                         <Select name="status" defaultValue={returnRecord.status} disabled={!databaseReady}>
                           {returnStatuses.map((status) => (
                             <option key={status} value={status}>
@@ -96,7 +96,7 @@ export default async function AdminReturnsPage({
                         </Select>
                         <Input name="receivedAt" type="datetime-local" defaultValue={dateInputValue(returnRecord.receivedAt)} disabled={!databaseReady} />
                         <Input name="damageFee" type="number" min="0" step="1" defaultValue={Number(returnRecord.damageFee ?? 0)} disabled={!databaseReady} />
-                        <input type="hidden" name="inspectionNotes" value={returnRecord.inspectionNotes ?? ""} />
+                        <Input name="inspectionNotes" defaultValue={returnRecord.inspectionNotes ?? ""} placeholder="Inspection notes" disabled={!databaseReady} />
                         <Button type="submit" size="sm" disabled={!databaseReady}>
                           Save
                         </Button>
